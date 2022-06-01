@@ -1,0 +1,27 @@
+form {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  gap: 1rem;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+}
+
+.errorMsg {
+  color: #f5131e;
+  font-weight: bold;
+  text-shadow: 1px 1px 0 #000;
+  font-size: 1.5rem;
+  height: 2rem;
+}
+
+.inputText {
+  text-align: center;
+  width: 100px;
+  border-radius: 10px;
+  border: none;
+  -webkit-box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
+          box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
+}
+/*# sourceMappingURL=ReadInput.css.map */
