@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useRollFuncs } from "../../context/ContextProvider";
 import "./Dice.css";
 const IMAGES = {
   1: require("../../assets/images/dice-1.png"),
@@ -9,40 +10,40 @@ const IMAGES = {
   6: require("../../assets/images/dice-6.png"),
 };
 
-class Dice extends React.Component {
-  state = { roll: 6 };
+function Dice({ rolling }) {
+  const { setRollFuncs } = useRollFuncs();
+  const [roll, setRoll] = useState(6);
 
-  rollNum = () => {
+  const rollNum = () => {
     let random1 = (Math.random() * 6 + 1) | 0;
     let intID = setInterval(() => {
       let random = (Math.random() * 6 + 1) | 0;
-      this.setState({ roll: random });
+      setRoll(random);
     }, 100);
     setTimeout(() => {
-      this.setState({ roll: random1 });
+      setRoll(random1);
       clearInterval(intID);
     }, 920);
     return random1;
   };
 
-  componentDidMount = () => {
-    this.props.getRollFunc(this.rollNum);
-  };
+  useEffect(() => {
+    setRollFuncs((prev) => {
+      const roll = [...prev];
+      roll.push(rollNum);
+      return roll;
+    });
+  }, []);
 
-  render() {
-    const rolling = this.props.rolling ? "animate" : "";
-    return (
-      <>
-        {this.state.roll && (
-          <img
-            src={IMAGES[this.state.roll]}
-            alt="die img"
-            className={rolling}
-          />
-        )}
-      </>
-    );
-  }
+  const rollingClass = rolling ? "animate" : "";
+
+  return (
+    <>
+      {roll && (
+        <img src={IMAGES[roll]} alt="die img" className={rollingClass} />
+      )}
+    </>
+  );
 }
 
 export default Dice;

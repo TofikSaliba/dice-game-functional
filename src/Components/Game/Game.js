@@ -1,270 +1,249 @@
-import React from "react";
-import "./Game.css";
+import React, { useEffect } from "react";
 import Dice from "../Dice/Dice";
 import CustomBtn from "../CustomBtn/CustomBtn";
 import Player from "../Player/Player";
 import ReadInput from "../ReadInput/ReadInput";
 import NameInput from "../NameInput/NameInput";
 import Popup from "../Popup/Popup";
-import diceRoll from "../../assets/sound/diceRoll.wav";
+import diceRollFile from "../../assets/sound/diceRoll.wav";
 
-class Game extends React.Component {
-  state = {
-    currentDiceRoll: [],
-    playerTurn: false,
-    playerTurnCurrentScore: 0,
-    player1Name: "Player 1",
-    player2Name: "Player 2",
-    totalScore1: 0,
-    totalScore2: 0,
-    p1Wins: 0,
-    p2Wins: 0,
-    isRollBtnDisabled: true,
-    isGameOver: false,
-    resetGame: true,
-    winnerMsg: "",
-    rollFuncs: [],
-  };
+import "./Game.css";
+import { useRollFuncs } from "../../context/ContextProvider";
+import { useIsRollBtnDisabled } from "../../context/ContextProvider";
+import { useCurrentDiceRoll } from "../../context/ContextProvider";
+import { usePlayerCurrentScore } from "../../context/ContextProvider";
+import { usePlayerTurn } from "../../context/ContextProvider";
+import { useScoreGoal } from "../../context/ContextProvider";
+import { usePlayer1Name } from "../../context/ContextProvider";
+import { usePlayer2Name } from "../../context/ContextProvider";
+import { useWinnerMsg } from "../../context/ContextProvider";
+import { useTotalScore1 } from "../../context/ContextProvider";
+import { useTotalScore2 } from "../../context/ContextProvider";
+import { useIsGameOver } from "../../context/ContextProvider";
+import { useP1Wins } from "../../context/ContextProvider";
+import { useP2Wins } from "../../context/ContextProvider";
+import { useResetGame } from "../../context/ContextProvider";
 
-  diceRoll = new Audio(diceRoll);
+function Game() {
+  const { rollFuncs, setRollFuncs } = useRollFuncs();
+  const { isRollBtnDisabled, setIsRollBtnDisabled } = useIsRollBtnDisabled();
+  const { currentDiceRoll, setCurrentDiceRoll } = useCurrentDiceRoll();
+  const { playerCurrentScore, setPlayerCurrentScore } = usePlayerCurrentScore();
+  const { playerTurn, setPlayerTurn } = usePlayerTurn();
+  const { scoreGoal, setScoreGoal } = useScoreGoal();
+  const { player1Name, setPlayer1Name } = usePlayer1Name();
+  const { player2Name, setPlayer2Name } = usePlayer2Name();
+  const { winnerMsg, setWinnerMsg } = useWinnerMsg();
+  const { totalScore1, setTotalScore1 } = useTotalScore1();
+  const { totalScore2, setTotalScore2 } = useTotalScore2();
+  const { isGameOver, setIsGameOver } = useIsGameOver();
+  const { p1Wins, setP1Wins } = useP1Wins();
+  const { p2Wins, setP2Wins } = useP2Wins();
+  const { resetGame, setResetGame } = useResetGame();
 
-  getRollFunc = (func) => {
-    this.setState((prevState) => {
-      const roll = [...prevState.rollFuncs];
-      roll.push(func);
-      return { rollFuncs: roll };
+  const diceRoll = new Audio(diceRollFile);
+
+  const rollAllDice = () => {
+    setIsRollBtnDisabled(true);
+    diceRoll.pause();
+    diceRoll.currentTime = 0;
+    diceRoll.play();
+    const currentDiceRoll2 = [];
+    rollFuncs.forEach((diceFunc) => {
+      currentDiceRoll2.push(diceFunc());
     });
+    // console.log(currentDiceRoll);
+    updateCurrSumAndCurrDiceRoll(currentDiceRoll2);
   };
 
-  rollAllDice = () => {
-    this.setState({ isRollBtnDisabled: true });
-    this.diceRoll.pause();
-    this.diceRoll.currentTime = 0;
-    this.diceRoll.play();
-    const currentDiceRoll = [];
-    this.state.rollFuncs.forEach((diceFunc, idx) => {
-      currentDiceRoll[idx] = diceFunc();
-    });
-    this.updateCurrSumAndCurrDiceRoll(currentDiceRoll);
-  };
-
-  updateCurrSumAndCurrDiceRoll = (currentDiceRoll) => {
-    this.setState({ currentDiceRoll: currentDiceRoll });
+  const updateCurrSumAndCurrDiceRoll = (currentDiceRoll2) => {
+    setCurrentDiceRoll(currentDiceRoll2);
     setTimeout(() => {
-      this.setState({ isRollBtnDisabled: false });
-      this.updateCurrentSum();
+      setIsRollBtnDisabled(false);
     }, 1100);
   };
 
-  updateCurrentSum = () => {
-    const dice1 = this.state.currentDiceRoll[0],
-      dice2 = this.state.currentDiceRoll[1];
-    if (dice1 === 6 && dice2 === 6) {
-      this.setState((prev) => {
-        return { playerTurnCurrentScore: 0, playerTurn: !prev.playerTurn };
-      });
+  useEffect(() => {
+    setTimeout(() => {
+      updateCurrentSum();
+    }, 1100);
+  }, [currentDiceRoll]);
+
+  const updateCurrentSum = () => {
+    const diceTotal = currentDiceRoll[0] + currentDiceRoll[1];
+    if (diceTotal === 12) {
+      setPlayerCurrentScore(0);
+      setPlayerTurn((prev) => !prev);
     } else {
-      this.addSumToState(dice1 + dice2);
+      addSumToState(diceTotal);
     }
   };
 
-  addSumToState = (diceSum) => {
-    this.setState((prev) => {
-      let sum = prev.playerTurnCurrentScore + diceSum;
-      return {
-        playerTurnCurrentScore: sum,
-      };
-    });
-    this.checkIfCurrentIsOverScoreGoal();
+  const addSumToState = (diceSum) => {
+    setPlayerCurrentScore((prev) => prev + diceSum);
+    checkIfCurrentIsOverScoreGoal();
   };
 
-  checkIfCurrentIsOverScoreGoal = () => {
-    let playerKey = this.state.playerTurn ? "2" : "1";
-    this.checkGameOver("playerTurnCurrentScore", playerKey);
+  const checkIfCurrentIsOverScoreGoal = () => {
+    let playerKey = playerTurn ? "2" : "1";
+    checkGameOver(playerCurrentScore, playerKey);
   };
 
-  holdTheScoreAndChangeTurn = () => {
-    if (this.state.playerTurnCurrentScore === 0) return;
-    const whoToAddTo = this.state.playerTurn ? "totalScore2" : "totalScore1";
-
-    this.addCurrentToPlayerTotal(whoToAddTo);
-    this.checkGameOver(whoToAddTo, whoToAddTo.slice(-1));
-  };
-
-  addCurrentToPlayerTotal = (whoToAddTo) => {
-    this.setState((prev) => {
-      let sumToAdd = prev[whoToAddTo] + prev.playerTurnCurrentScore;
-      return {
-        [whoToAddTo]: sumToAdd,
-        playerTurn: !prev.playerTurn,
-        playerTurnCurrentScore: 0,
-      };
-    });
-  };
-
-  checkGameOver = (stateScoreKey, pNum) => {
+  const checkGameOver = (scoreToCheck, pNum) => {
     setTimeout(() => {
       let playerNum;
-      if (this.state[stateScoreKey] === this.state.scoreGoal) {
+      if (scoreToCheck === scoreGoal) {
         playerNum = pNum;
-        this.setReachScoreWinMsg(playerNum);
-      } else if (this.state[stateScoreKey] > this.state.scoreGoal) {
-        playerNum = this.setPassedScoreWinMsg(pNum);
+        setReachScoreWinMsg(playerNum);
+      } else if (scoreToCheck > scoreGoal) {
+        playerNum = setPassedScoreWinMsg(pNum);
       }
       if (playerNum) {
-        this.gameIsTrulyOverDeclareWinner(playerNum);
+        gameIsTrulyOverDeclareWinner(playerNum);
       }
     }, 100);
   };
 
-  setReachScoreWinMsg = (playerNum) => {
-    let playerName =
-      playerNum === "1" ? this.state.player1Name : this.state.player2Name;
-    this.setState({
-      winnerMsg: `${playerName} has won! with reaching exactly ${this.state.scoreGoal} points.`,
-    });
+  const setReachScoreWinMsg = (playerNum) => {
+    let playerName = playerNum === "1" ? player1Name : player2Name;
+    setWinnerMsg(
+      `${playerName} has won! with reaching exactly ${scoreGoal} points.`
+    );
   };
 
-  setPassedScoreWinMsg = (pNum) => {
+  const setPassedScoreWinMsg = (pNum) => {
     let playerNum = pNum === "1" ? "2" : "1";
-    let playerName =
-      playerNum === "1" ? this.state.player1Name : this.state.player2Name;
-    this.setState({
-      winnerMsg: `${playerName} has won! by the other player elimination getting over a ${this.state.scoreGoal}`,
-    });
+    let playerName = playerNum === "1" ? player1Name : player2Name;
+    setWinnerMsg(
+      `${playerName} has won! by the other player elimination getting over a ${scoreGoal}`
+    );
     return playerNum;
   };
 
-  gameIsTrulyOverDeclareWinner = (playerNum) => {
-    this.setState((prev) => {
-      return {
-        isGameOver: true,
-        [`p${playerNum}Wins`]: prev[`p${playerNum}Wins`] + 1,
-      };
-    });
-  };
-
-  playAgain = () => {
-    this.setState({
-      currentDiceRoll: [],
-      playerTurn: false,
-      playerTurnCurrentScore: 0,
-      totalScore1: 0,
-      totalScore2: 0,
-      isRollBtnDisabled: false,
-      isGameOver: false,
-      winnerMsg: "",
-    });
-  };
-
-  getScoreGoalAndStart = (scoreGoal) => {
-    this.playAgain();
-    this.setState({
-      scoreGoal: scoreGoal,
-      p1Wins: 0,
-      p2Wins: 0,
-      resetGame: false,
-    });
-  };
-
-  getName = (player, value) => {
-    let playerName = player === "P1" ? "player1Name" : "player2Name";
-    if (value) {
-      this.setState({ [playerName]: value });
+  const gameIsTrulyOverDeclareWinner = (playerNum) => {
+    setIsGameOver(true);
+    if (playerNum === "1") {
+      setP1Wins((prev) => prev + 1);
     } else {
-      this.setState({ [playerName]: `Player ${player.slice(-1)}` });
+      setP2Wins((prev) => prev + 1);
     }
   };
 
-  newGame = () => {
-    this.setState({
-      resetGame: true,
-      isRollBtnDisabled: true,
-    });
+  const holdTheScoreAndChangeTurn = () => {
+    if (playerCurrentScore === 0) return;
+    const whoToAddTo = playerTurn ? "2" : "1";
+    addCurrentToPlayerTotal(whoToAddTo);
+    checkGameOver(whoToAddTo === "1" ? totalScore1 : totalScore2, whoToAddTo);
   };
 
-  render() {
-    return (
-      <>
-        <div className="bg-img"></div>
+  const addCurrentToPlayerTotal = (whoToAddTo) => {
+    if (whoToAddTo === "1") {
+      setTotalScore1((prev) => prev + playerCurrentScore);
+    } else {
+      setTotalScore2((prev) => prev + playerCurrentScore);
+    }
+    setPlayerTurn((prev) => !prev);
+    setPlayerCurrentScore(0);
+  };
 
-        <div className="mainContainer">
-          <div>
-            <Player
-              playerName={this.state.player1Name}
-              currentScore={this.state.playerTurnCurrentScore}
-              totalScore={this.state.totalScore1}
-              turn={!this.state.playerTurn}
-              wins={this.state.p1Wins}
-            />
-          </div>
-          <div className="gameBoard">
-            <div className="newGameBtn">
-              <CustomBtn
-                text="New Game"
-                callBackFunc={this.newGame}
-                disabled={this.state.isGameOver}
-              />
-            </div>
-            <div className="diceContainer">
-              <Dice
-                getRollFunc={this.getRollFunc}
-                rolling={this.state.isRollBtnDisabled}
-              />
-              <Dice
-                getRollFunc={this.getRollFunc}
-                rolling={this.state.isRollBtnDisabled}
-              />
-            </div>
-            <div className="rollAndHold">
-              <CustomBtn
-                text="Roll The Dice"
-                callBackFunc={this.rollAllDice}
-                disabled={this.state.isRollBtnDisabled || this.state.isGameOver}
-              />
-              <CustomBtn
-                text="Hold"
-                callBackFunc={this.holdTheScoreAndChangeTurn}
-                disabled={false}
-              />
-            </div>
-            <div className="inputContainer">
-              {this.state.resetGame && (
-                <>
-                  <NameInput player="P1" callBack={this.getName} />
-                  <NameInput player="P2" callBack={this.getName} />
-                  <ReadInput getScoreGoal={this.getScoreGoalAndStart} />
-                </>
-              )}
-              {!this.state.resetGame && (
-                <div className="scoreGoal">
-                  Score Goal: {this.state.scoreGoal}
-                </div>
-              )}
-            </div>
-          </div>
-          <div>
-            <Player
-              playerName={this.state.player2Name}
-              currentScore={this.state.playerTurnCurrentScore}
-              totalScore={this.state.totalScore2}
-              turn={this.state.playerTurn}
-              wins={this.state.p2Wins}
-            />
-          </div>
-          {this.state.isGameOver && (
-            <Popup
-              playAgain={this.playAgain}
-              winnerMsg={this.state.winnerMsg}
-            />
-          )}
+  const playAgain = () => {
+    setCurrentDiceRoll([0, 0]);
+    setPlayerTurn(false);
+    setPlayerCurrentScore(0);
+    setTotalScore1(0);
+    setTotalScore2(0);
+    setIsRollBtnDisabled(false);
+    setIsGameOver(false);
+    setWinnerMsg("");
+  };
+
+  const getScoreGoalAndStart = (scoreGoal) => {
+    playAgain();
+    setScoreGoal(scoreGoal);
+    setP1Wins(0);
+    setP2Wins(0);
+    setResetGame(false);
+  };
+
+  const getName = (player, value) => {
+    const newVal = value ? value : `Player ${player.slice(-1)}`;
+    if (player === "P1") {
+      setPlayer1Name(newVal);
+    } else {
+      setPlayer2Name(newVal);
+    }
+  };
+
+  const newGame = () => {
+    setResetGame(true);
+    setIsRollBtnDisabled(true);
+  };
+
+  return (
+    <>
+      <div className="bg-img"></div>
+
+      <div className="mainContainer">
+        <div>
+          <Player
+            playerName={player1Name}
+            totalScore={totalScore1}
+            turn={!playerTurn}
+            wins={p1Wins}
+          />
         </div>
-        <div className="thanks">
-          Special thanks to: Shir Toledano productions® for the amazing styling!
+        <div className="gameBoard">
+          <div className="newGameBtn">
+            <CustomBtn
+              text="New Game"
+              callBackFunc={newGame}
+              disabled={isGameOver}
+            />
+          </div>
+          <div className="diceContainer">
+            <Dice rolling={isRollBtnDisabled} />
+            <Dice rolling={isRollBtnDisabled} />
+          </div>
+          <div className="rollAndHold">
+            <CustomBtn
+              text="Roll The Dice"
+              callBackFunc={rollAllDice}
+              disabled={isRollBtnDisabled || isGameOver}
+            />
+            <CustomBtn
+              text="Hold"
+              callBackFunc={holdTheScoreAndChangeTurn}
+              disabled={false}
+            />
+          </div>
+          <div className="inputContainer">
+            {resetGame && (
+              <>
+                <NameInput player="P1" callBack={getName} />
+                <NameInput player="P2" callBack={getName} />
+                <ReadInput getScoreGoal={getScoreGoalAndStart} />
+              </>
+            )}
+            {!resetGame && (
+              <div className="scoreGoal">Score Goal: {scoreGoal}</div>
+            )}
+          </div>
         </div>
-      </>
-    );
-  }
+        <div>
+          <Player
+            playerName={player2Name}
+            totalScore={totalScore2}
+            turn={playerTurn}
+            wins={p2Wins}
+          />
+        </div>
+        {isGameOver && <Popup playAgain={playAgain} winnerMsg={winnerMsg} />}
+      </div>
+      <div className="thanks">
+        Special thanks to: Shir Toledano productions® for the amazing styling!
+      </div>
+    </>
+  );
 }
 
 export default Game;
